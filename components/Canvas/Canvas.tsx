@@ -303,8 +303,19 @@ export function Canvas({ className = '' }: CanvasProps) {
 
     // Enable panning when:
     // 1. Space key is held down, OR
-    // 2. Select tool is active and clicking on empty canvas
-    const shouldPan = isPanning || (currentTool === 'select' && e.target === canvasRef.current);
+    // 2. Clicking on canvas background (not on elements) for most tools
+    // Exclude tools that need direct canvas interaction: draw, arrow, note, text, shapes
+    const toolsWithDirectInteraction = ['draw', 'arrow', 'note', 'text', 'rectangle', 'circle', 'triangle'];
+    
+    // Check if click is on canvas background or grid, not on interactive elements
+    const target = e.target as HTMLElement;
+    const isClickingOnElements = target.closest('[data-canvas-elements-container]') && 
+                                target.closest('[data-canvas-elements-container]') !== target;
+    const isClickingEmptyCanvas = !isClickingOnElements;
+    
+    const shouldPan = isPanning || 
+                     (isClickingEmptyCanvas && !toolsWithDirectInteraction.includes(currentTool)) ||
+                     (isClickingEmptyCanvas && currentTool === 'select');
     
     if (shouldPan) {
       setIsPanning(true);
@@ -499,10 +510,41 @@ export function Canvas({ className = '' }: CanvasProps) {
     }
   }, [arrowDraft, currentTool, finalizeArrow]);
 
+  const getCursorClass = () => {
+    // If actively dragging and panning
+    if (isDragging && isPanning) {
+      return 'cursor-grabbing';
+    }
+
+    // If space key is held (always allows panning)
+    if (isPanning) {
+      return 'cursor-grab';
+    }
+
+    // Tool-specific cursors
+    switch (currentTool) {
+      case 'draw':
+        return 'cursor-crosshair';
+      case 'arrow':
+        return 'cursor-crosshair';
+      case 'select':
+        return 'cursor-grab'; // Select tool can always grab
+      case 'note':
+      case 'text':
+      case 'rectangle':
+      case 'circle':
+      case 'triangle':
+        return 'cursor-crosshair';
+      default:
+        // For any other tools, show grab cursor (can pan on empty canvas)
+        return 'cursor-grab';
+    }
+  };
+
   return (
     <div
       ref={canvasRef}
-      className={`relative w-full h-full overflow-hidden bg-white dark:bg-gray-900 cursor-${isDragging && isPanning ? 'grabbing' : isPanning || currentTool === 'select' ? 'grab' : currentTool === 'draw' ? 'crosshair' : 'crosshair'} ${className}`}
+      className={`relative w-full h-full overflow-hidden bg-white dark:bg-gray-900 ${getCursorClass()} ${className}`}
       onClick={handleCanvasClick}
       onDoubleClick={handleCanvasDoubleClick}
       onMouseDown={handleMouseDown}
@@ -530,6 +572,7 @@ export function Canvas({ className = '' }: CanvasProps) {
           transform: `translate(${canvasState.pan.x}px, ${canvasState.pan.y}px) scale(${canvasState.zoom})`,
           transformOrigin: '0 0',
         }}
+        data-canvas-elements-container
       >
         {elements.map((element) => {
           switch (element.type) {
