@@ -2,6 +2,53 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 
+// Minimal types for the YouTube iframe player we use in this component.
+type YouTubePlayerLike = {
+  playVideo?: () => void;
+  pauseVideo?: () => void;
+  loadVideoById?: (videoId: string) => void;
+  getDuration?: () => number;
+  getCurrentTime?: () => number;
+  seekTo?: (seconds: number, allowSeekAhead?: boolean) => void;
+  setVolume?: (volume: number) => void;
+  destroy?: () => void;
+};
+
+type YouTubePlayerEvent = {
+  target: YouTubePlayerLike;
+};
+
+type YouTubePlayerStateChangeEvent = {
+  data: number;
+  target: YouTubePlayerLike;
+};
+
+type YouTubeGlobal = typeof window & {
+  YT?: {
+    Player?: new (
+      elementId: string,
+      options: {
+        height: string;
+        width: string;
+        videoId: string;
+        playerVars?: { modestbranding?: 0 | 1 };
+        events?: {
+          onReady?: (event: YouTubePlayerEvent) => void;
+          onStateChange?: (event: YouTubePlayerStateChangeEvent) => void;
+        };
+      },
+    ) => YouTubePlayerLike;
+    PlayerState?: {
+      PLAYING: number;
+      PAUSED: number;
+      ENDED: number;
+    };
+  };
+  onYouTubeIframeAPIReady?: () => void;
+};
+
+const INITIAL_VOLUME = 50;
+
 const TRACKS = [
   { id: 'nMfPqeZjc2c', title: 'White Noise' },
   { id: 'yIQd2Ya0Ziw', title: 'Rainstorm' },
@@ -18,19 +65,19 @@ function formatTime(totalSeconds: number): string {
 }
 
 export function MusicPanel() {
-  const playerRef = useRef<any | null>(null);
+  const playerRef = useRef<YouTubePlayerLike | null>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isReady, setIsReady] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [duration, setDuration] = useState(0);
   const [currentTime, setCurrentTime] = useState(0);
-  const [volume, setVolume] = useState(50);
+  const [volume, setVolume] = useState(INITIAL_VOLUME);
 
   // Load YouTube Iframe API and initialize player
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
-    const win: any = window;
+    const win = window as YouTubeGlobal;
 
     const createPlayer = () => {
       if (playerRef.current || !win.YT || !win.YT.Player) {
@@ -45,29 +92,30 @@ export function MusicPanel() {
           modestbranding: 1,
         },
         events: {
-          onReady: (event: any) => {
+          onReady: (event: YouTubePlayerEvent) => {
             setIsReady(true);
-            const d = event.target.getDuration();
+            const d =
+              typeof event.target.getDuration === 'function'
+                ? event.target.getDuration()
+                : undefined;
             if (typeof d === 'number' && !isNaN(d)) {
               setDuration(d);
             }
             // Set initial volume level
             if (typeof event.target.setVolume === 'function') {
               try {
-                event.target.setVolume(volume);
+                event.target.setVolume(INITIAL_VOLUME);
               } catch {
                 // ignore player errors
               }
             }
           },
-          onStateChange: (event: any) => {
-            if (!win.YT) return;
-            if (event.data === win.YT.PlayerState.PLAYING) {
+          onStateChange: (event: YouTubePlayerStateChangeEvent) => {
+            if (!win.YT || !win.YT.PlayerState) return;
+            const { PLAYING, PAUSED, ENDED } = win.YT.PlayerState;
+            if (event.data === PLAYING) {
               setIsPlaying(true);
-            } else if (
-              event.data === win.YT.PlayerState.PAUSED ||
-              event.data === win.YT.PlayerState.ENDED
-            ) {
+            } else if (event.data === PAUSED || event.data === ENDED) {
               setIsPlaying(false);
             }
           },
@@ -94,7 +142,9 @@ export function MusicPanel() {
 
     return () => {
       if (playerRef.current) {
-        playerRef.current.destroy();
+        if (typeof playerRef.current.destroy === 'function') {
+          playerRef.current.destroy();
+        }
         playerRef.current = null;
       }
     };
@@ -103,7 +153,7 @@ export function MusicPanel() {
   // Sync current track when index changes
   useEffect(() => {
     if (!isReady || !playerRef.current) return;
-    const player: any = playerRef.current;
+    const player = playerRef.current;
     const track = TRACKS[currentIndex];
 
     try {
@@ -126,7 +176,7 @@ export function MusicPanel() {
   useEffect(() => {
     if (!isReady || !playerRef.current) return;
 
-    const player: any = playerRef.current;
+    const player = playerRef.current;
     const id = window.setInterval(() => {
       try {
         if (typeof player.getCurrentTime === 'function') {
@@ -150,13 +200,17 @@ export function MusicPanel() {
   }, [isReady]);
 
   const togglePlayPause = () => {
-    const player: any = playerRef.current;
+    const player = playerRef.current;
     if (!player) return;
     try {
       if (isPlaying) {
-        player.pauseVideo && player.pauseVideo();
+        if (typeof player.pauseVideo === 'function') {
+          player.pauseVideo();
+        }
       } else {
-        player.playVideo && player.playVideo();
+        if (typeof player.playVideo === 'function') {
+          player.playVideo();
+        }
       }
     } catch {
       // ignore
@@ -164,10 +218,12 @@ export function MusicPanel() {
   };
 
   const handleSeek = (value: number) => {
-    const player: any = playerRef.current;
+    const player = playerRef.current;
     if (!player || !duration) return;
     try {
-      player.seekTo && player.seekTo(value, true);
+      if (typeof player.seekTo === 'function') {
+        player.seekTo(value, true);
+      }
       setCurrentTime(value);
     } catch {
       // ignore
@@ -185,7 +241,7 @@ export function MusicPanel() {
   const applyVolume = (value: number) => {
     const clamped = Math.min(100, Math.max(0, Math.round(value)));
     setVolume(clamped);
-    const player: any = playerRef.current;
+    const player = playerRef.current;
     if (player && typeof player.setVolume === 'function') {
       try {
         player.setVolume(clamped);
@@ -212,7 +268,7 @@ export function MusicPanel() {
       <div className="p-4 border-b border-gray-200 dark:border-gray-700">
         <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Focus Music</h2>
         <p className="text-sm text-gray-500 dark:text-gray-400">
-          White noise &amp; rain ... to help you stay in flow
+          White noise &amp; rain... to help you stay in flow
         </p>
       </div>
 
