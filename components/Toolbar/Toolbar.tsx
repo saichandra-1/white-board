@@ -15,6 +15,7 @@ import {
   Undo,
   Redo,
   Trash,
+  Timer,
 } from '@/components/Icons';
 
 interface ToolButtonProps {
@@ -63,6 +64,7 @@ export function Toolbar() {
     { tool: 'circle', icon: <Circle />, label: 'Circle', shortcut: 'C' },
     { tool: 'triangle', icon: <Triangle />, label: 'Triangle', shortcut: '3' },
     { tool: 'arrow', icon: <ArrowRight />, label: 'Arrow', shortcut: 'A' },
+    { tool: 'timer', icon: <Timer />, label: 'Timer', shortcut: '' },
   ];
 
   return (

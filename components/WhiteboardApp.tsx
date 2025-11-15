@@ -8,6 +8,7 @@ import { Canvas } from '@/components/Canvas/Canvas';
 import { Toolbar } from '@/components/Toolbar/Toolbar';
 import { TopBar } from '@/components/TopBar/TopBar';
 import { PropertiesPanel } from '@/components/PropertiesPanel/PropertiesPanel';
+import { TimerPanel } from '@/components/TimerPanel/TimerPanel';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { StickyNoteElement } from '@/types/whiteboard';
 import { generateId } from '@/lib/utils';
@@ -63,7 +64,7 @@ const SAMPLE_DATA: StickyNoteElement[] = [
 ];
 
 function WhiteboardContent() {
-  const { addElement, elements, setTool, undo, redo, canvasState, deleteElement } = useWhiteboard();
+  const { addElement, elements, setTool, undo, redo, canvasState, deleteElement, currentTool } = useWhiteboard();
   const { leftPanelOpen, rightPanelOpen, toggleLeftPanel, toggleRightPanel } = usePanel();
 
   // Load sample data on first render
@@ -210,10 +211,10 @@ function WhiteboardContent() {
           </button>
         </div>
 
-        {/* Right Properties Panel */}
+        {/* Right Panel: Properties or Timer depending on tool */}
         <div className={`relative transition-all duration-300 ${rightPanelOpen ? 'w-80' : 'w-0'}`}>
           <div className={`${rightPanelOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'} transition-opacity duration-300`}>
-            <PropertiesPanel />
+            {currentTool === 'timer' ? <TimerPanel /> : <PropertiesPanel />}
           </div>
         </div>
       </div>
