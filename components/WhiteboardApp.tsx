@@ -9,6 +9,7 @@ import { Toolbar } from '@/components/Toolbar/Toolbar';
 import { TopBar } from '@/components/TopBar/TopBar';
 import { PropertiesPanel } from '@/components/PropertiesPanel/PropertiesPanel';
 import { TimerPanel } from '@/components/TimerPanel/TimerPanel';
+import { MusicPanel } from '@/components/MusicPanel/MusicPanel';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { StickyNoteElement } from '@/types/whiteboard';
 import { generateId } from '@/lib/utils';
@@ -155,6 +156,10 @@ function WhiteboardContent() {
           e.preventDefault();
           setTool('triangle');
           break;
+        case 'm':
+          e.preventDefault();
+          setTool('music');
+          break;
         case 'a':
           if (!isCtrlOrCmd) {
             e.preventDefault();
@@ -211,10 +216,19 @@ function WhiteboardContent() {
           </button>
         </div>
 
-        {/* Right Panel: Properties or Timer depending on tool */}
+        {/* Right Panel: Properties, Timer, or Music depending on tool */}
         <div className={`relative transition-all duration-300 ${rightPanelOpen ? 'w-80' : 'w-0'}`}>
           <div className={`${rightPanelOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'} transition-opacity duration-300`}>
-            {currentTool === 'timer' ? <TimerPanel /> : <PropertiesPanel />}
+            {/* Keep panels mounted so music can keep playing even when switching tools */}
+            <div className={currentTool === 'timer' ? 'block' : 'hidden'}>
+              <TimerPanel />
+            </div>
+            <div className={currentTool === 'music' ? 'block' : 'hidden'}>
+              <MusicPanel />
+            </div>
+            <div className={currentTool !== 'timer' && currentTool !== 'music' ? 'block' : 'hidden'}>
+              <PropertiesPanel />
+            </div>
           </div>
         </div>
       </div>

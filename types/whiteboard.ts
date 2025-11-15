@@ -1,6 +1,6 @@
 export type ElementType = 'stickyNote' | 'shape' | 'textbox' | 'drawing';
 export type ShapeType = 'rectangle' | 'circle' | 'triangle' | 'arrow';
-export type Tool = 'select' | 'note' | 'draw' | 'text' | 'rectangle' | 'circle' | 'triangle' | 'arrow' | 'timer';
+export type Tool = 'select' | 'note' | 'draw' | 'text' | 'rectangle' | 'circle' | 'triangle' | 'arrow' | 'timer' | 'music';
 export type Theme = 'light' | 'dark';
 
 export interface Point {

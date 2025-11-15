@@ -16,6 +16,7 @@ import {
   Redo,
   Trash,
   Timer,
+  Music,
 } from '@/components/Icons';
 
 interface ToolButtonProps {
@@ -63,6 +64,7 @@ export function Toolbar() {
     { tool: 'text', icon: <Type />, label: 'Text', shortcut: 'T' },
     { tool: 'arrow', icon: <ArrowRight />, label: 'Arrow', shortcut: 'A' },
     { tool: 'timer', icon: <Timer />, label: 'Timer', shortcut: '' },
+    { tool: 'music', icon: <Music />, label: 'Play music', shortcut: 'M' },
   ];
 
   const shapeTools: Array<{ tool: Tool; icon: React.ReactNode; label: string; shortcut: string }> = [
